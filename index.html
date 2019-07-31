@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+    <style>
+        body {
+            font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+            color: #fff;
+            margin: 0;
+            background-color: #333;
+        }
+        a {
+            text-decoration: none;
+            color: inherit;
+            font-size: 1.0rem;
+        }
+        .container {
+            padding: 0 15px 0 15px;
+            border: 1px solid transparent;
+            width: 360px;
+            height: 120vh;
+            transform: scale(0.8, 1);
+            transform-origin: top left;
+            margin: 0 auto;
+            background-color: #333;
+        }
+        @media screen and (min-width:375px) {
+            body {
+                background-color: #f00;
+            }
+            .container {
+                transform: scale(1, 1);
+            }
+        }
+        [data-credit-card] {
+            background-color: #888;
+            padding: 20px;
+            border-radius: 10px;
+            height: 150px;
+        }
+        img {
+            width: auto;
+            height: 50px;
+            margin-left: calc(100% - 100px);
+        }
+        [data-credit-card].is-visa {
+            background: linear-gradient(135deg, #622774 0%, #c53364 100%);
+        }
+
+        [data-credit-card].is-mastercard {
+            background: linear-gradient(135deg, #65799b 0%, #5e2563 100%);
+        }
+        input {
+            outline: none;
+            border: none;
+            background-color: inherit;
+            color: #fff;
+            font-size: 1rem;
+        }
+        [data-cc-digits] {
+            margin-top: 20px;
+        }
+        [data-cc-digits] input:nth-of-type(odd) {
+            margin-right: 70px;
+        }
+        [data-cc-info] input {
+            margin-top: 20px;
+            padding: 0px;
+        }
+        ::placeholder {
+            color: #fff;
+            font-size: 1rem;
+        }
+        [data-cc-digits] input::placeholder {
+            font-size: 1.5rem;
+        }
+        input.is-invalid,
+        .is-invalid input {
+            text-decoration: line-through;
+        }
+        [data-pay-btn] {
+            margin-top: 40px;
+            padding: 20px;
+            width: 100%;
+            border: none;
+            background-color: #eee;
+        }
+        [data-pay-btn]:hover {
+            background-color: #ccc;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div data-cart-info>
+            <h1 class="mdc-typography--headline4">
+                <p>Your Total Purchase is:</p>
+                <span class="material-icons"><i class="fa fa-shopping-cart" aria-hidden="true"></i></span>
+                <span data-bill></span>
+            </h1>
+        </div>
+        <p>Please Insert Card Details:</p>
+            <div data-credit-card class="mdc-card mdc-card--outlined">
+                    <div class="mdc-card__primary-action">
+                        <img data-card-type src="http://placehold.it/120x60.png?text=Card" alt="">
+                        <div data-cc-digits>
+                        <input type="text" size="4" placeholder="----" autofocus maxlength="4">
+                        <input type="text" size="4" placeholder="----" maxlength="4">
+                        <input type="text" size="4" placeholder="----" maxlength="4">
+                        <input type="text" size="4" placeholder="----" maxlength="4">
+                        </div>
+                        <div data-cc-info>
+                        <input type="text" size="20" placeholder="Name Surname">
+                        <input type="text" size="6" placeholder="MM/YY">
+                        </div>
+                    </div>
+                </div>
+            <a href="#nothing" data-link><button class="mdc-button" data-pay-btn>Pay & Checkout format</button></a>
+    </div>
+    <script>
+        const countries = [
+            {
+                code: "US",
+                currency: "USD",
+                country: 'United States'
+            },
+            {
+                code: "NG",
+                currency: "NGN",
+                country: 'Nigeria'
+            },
+            {
+                code: 'KE',
+                currency: 'KES',
+                country: 'Kenya'
+            },
+            {
+                code: 'UG',
+                currency: 'UGX',
+                country: 'Uganda'
+            },
+            {
+                code: 'RW',
+                currency: 'RWF',
+                country: 'Rwanda'
+            },
+            {
+                code: 'TZ',
+                currency: 'TZS',
+                country: 'Tanzania'
+            },
+            {
+                code: 'ZA',
+                currency: 'ZAR',
+                country: 'South Africa'
+            },
+            {
+                code: 'CM',
+                currency: 'XAF',
+                country: 'Cameroon'
+            },
+            {
+                code: 'GH',
+                currency: 'GHS',
+                country: 'Ghana'
+            }
+        ];
+        
+        const status = (response) => {
+            if(response.status >= 200 && response.status < 300) {
+                console.log('done');
+                return Promise.resolve(response);
+            } else {
+                return Promise.reject(new Error(response.statusText));
+            }
+        }
+        const appState = {};
+        const formatAsMoney = (amount, buyerCountry) => {
+            let specificCountry = countries[0];
+            for(let i = 0; i < countries.length; i++) {
+                if(buyerCountry == countries[i].country) {
+                    specificCountry = countries[i];
+                    break;
+                }
+            }
+            amount = amount.toLocaleString(specificCountry.code, 
+            {style: 'currency', currency: specificCountry.currency});
+            return amount;
+        }
+    
+        const flagIfInvalid = (field, isValid) => {
+            if(isValid) {
+                field.classList.remove('is-invalid');
+            } else {
+                field.classList.add('is-invalid');
+            }
+        }
+        const expiryDateFormatIsValid = (expiryDate) => {
+            expireDate = expiryDate.toString();
+            if(/^\d{2}\/\d{2}$/.test(expiryDate)) {
+                // console.log('true');
+                return true;
+            } else {
+                // console.log('false');
+                return false;
+            }
+        }
+        let inputFields = document.querySelectorAll('input');
+        let button = document.querySelector('.mdc-button');
+        let [
+                input1,
+                input2,
+                input3,
+                input4,
+                input5,
+                input6
+            ] = inputFields;
+        const detectCardType = ({target}) => {
+            let cardNumber = target.value;
+            let cardColor = document.querySelector('[data-credit-card]');
+            let image = document.querySelector('[data-card-type]');
+            if(cardNumber[0] == '4') {
+                cardColor.classList.remove('is-mastercard');
+                cardColor.classList.add('is-visa');
+                image.setAttribute("src", "visa.jpg");
+                return 'is-visa';
+            } else if (cardNumber[0] == '5') {
+                cardColor.classList.remove('is-visa');
+                cardColor.classList.add('is-mastercard');
+                image.setAttribute("src", "MasterCard_Logo.svg.png");
+                return 'is-mastercard';
+            }
+    
+        }
+    
+        const validateCardExpiryDate = () => {
+            let format = input6.value;
+            let isValid;
+            expiryDateFormatIsValid(format);
+            let [ M1, M2, slash, Y1, Y2] = format;
+            format = '20'+Y1+Y2+"-"+M1+M2;
+            format =  new Date(format);
+            let now = new Date();
+            if(format > now) {
+                // console.log('future');
+                isValid = true;
+                flagIfInvalid(input6, isValid);
+                return true; 
+            } else {
+                // console.log('past');
+                isValid = false;
+                flagIfInvalid(input6, isValid);
+                return false;
+            }
+        }
+        
+        const validateCardHolderName = () => {
+            let format = input5.value;
+            let check = /^[a-zA-Z]{3,}\s[a-zA-Z]{3,}$/.test(format);
+            if(check) {
+                let isValid = true;
+                flagIfInvalid(input5, isValid);
+                return true;
+            } else {
+                let isValid = false;
+                flagIfInvalid(input5, isValid);
+                return false;
+            }
+        }
+        const validateWithLuhn = (digits) => {
+            let regExp = /^[0-9]{16}$/;
+            if(regExp.test(digits)) {
+                let arr = [];
+                for(let i = 0; i < digits.length; i++) {
+                    let number = Number(digits[i]);
+                    arr.push(number);
+                }
+                let arr2 = [];
+                for(let j = (arr.length - 1); j >= 0; j--) {
+                    let doubledElement = arr[j];
+                    if(j % 2 == 0) {
+                        doubledElement = arr[j] * 2;
+                    }
+                    if(doubledElement > 9) {
+                        doubledElement = doubledElement - 9;
+                    }
+                    arr2.push(doubledElement);
+                }
+                // console.log(arr2);
+                const sum = arr2.reduce((accumulator, currentValue) => {
+                    return accumulator + currentValue;
+                })
+                // console.log(sum);
+                if(sum % 10 == 0) {
+                    // console.log('correct');
+                    return true;
+                } else {
+                    return false;
+                    // console.log('lie inside')
+                }
+            } else {
+                // console.log('lie outside');
+                return false;
+            }  
+        }
+        const link = document.querySelector('[data-link]');
+        let cardDigits = document.querySelector('[data-cc-digits]');
+        const validateCardNumber = () => {
+            let digits = input1.value + input2.value + input3.value + input4.value;
+            if(validateWithLuhn(digits)) {
+                let isValid = true;
+                flagIfInvalid(cardDigits, isValid);
+                return true;
+            } else {
+                let isValid = false;
+                flagIfInvalid(cardDigits, isValid);
+                // console.log('lie');
+                return false;
+            }
+        }
+        const checkAll = () => {
+            if(!input5.classList.contains('is-invalid') && 
+                !input6.classList.contains('is-invalid') &&
+                !cardDigits.classList.contains('is-invalid')) {
+                    link.setAttribute("href", "pluralsight4b.html");
+            } else {
+               return false; 
+            }
+        }
+        const uiCanInteract = () => {
+            input1.addEventListener('blur', detectCardType);
+            input5.addEventListener('blur', validateCardHolderName);
+            input6.addEventListener('blur', validateCardExpiryDate);
+            input4.addEventListener('blur', validateCardNumber);
+            button.addEventListener('click', validateCardNumber);
+            button.addEventListener('click', validateCardHolderName);
+            button.addEventListener('click', validateCardExpiryDate);
+            button.addEventListener('click', checkAll);
+        }
+        uiCanInteract();
+        const displayCartTotal = ({results}) => {
+            // console.log(results);
+            // let [resultArray] = results;
+            // let {itemsInCart, buyerCountry} = resultArray;
+            // let [first, second] = itemsInCart;
+            // console.log(first);
+    
+            // OR
+    
+            console.log(results);
+            let [
+                    {
+                        itemsInCart, buyerCountry
+                    }
+                ] = results
+            // let [first, second] = itemsInCart;
+            // console.log(first);
+            appState.items = itemsInCart;
+            appState.country = buyerCountry;
+            appState.bill = itemsInCart.reduce((accumulator, currentValue) => {
+                return accumulator + (currentValue.price * currentValue.qty);
+            }, 0)
+            appState.billFormated = formatAsMoney(appState.bill, appState.country);
+            document.querySelector('[data-bill]').innerText = appState.billFormated;
+            uiCanInteract();
+        }
+        
+        const fetchBill = () => {
+            fetch('https://randomapi.com/api/006b08a801d82d0c9824dcfdfdfa3b3c')
+            .then(status)
+            .then(response => response.json())
+            .then(data => displayCartTotal(data))
+            .catch(error => console.log('Failed because: ', error));
+        }
+        const startApp = () => {
+            fetchBill();
+        };
+    
+        startApp();
+    </script>
+</body>
+</html>
